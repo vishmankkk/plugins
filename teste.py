@@ -1,4 +1,4 @@
-# VERSION: 1.8
+# VERSION: 1.9
 # AUTHORS: AhkTex + Grok
 # NAME: StarckFilmesV3
 
@@ -23,16 +23,16 @@ class starckfilmes(object):
         what = parse.quote_plus(what)
         search_terms = [t.lower() for t in what.replace('+', ' ').split()]
 
-        for page in range(1, 3):  # APENAS 2 PÁGINAS
+        for page in range(1, 3):  # SÓ 2 PÁGINAS
             try:
                 if cat in self.supported_categories and self.supported_categories[cat] != '0':
-                    url = f"{self.url}/?s={what}&type={self.supported_categories[cat]}&page={page}"
+                    search_url = f"{self.url}/?s={what}&type={self.supported_categories[cat]}&page={page}"
                 else:
-                    url = f"{self.url}/?s={what}&page={page}"
+                    search_url = f"{self.url}/?s={what}&page={page}"
 
-                req = self.opener.open(url, timeout=20)
-                soup = BeautifulSoup(req.read().decode('utf-8', 'ignore'), 'html.parser')
-            except:
+                req = self.opener.open(search_url, timeout=20)
+                soup = BeautifulSoup(req.read().decode('utf-8', errors='ignore'), 'html.parser')
+            except Exception as e:
                 break
 
             for item in soup.find_all('div', class_='item'):
@@ -41,12 +41,12 @@ class starckfilmes(object):
                     if not a: continue
                     link = a['href'] if a['href'].startswith('http') else self.url + a['href']
 
-                    title = item.find('a', class_='title')
-                    title = title.get_text(strip=True) if title else "Unknown"
+                    title_tag = item.find('a', class_='title')
+                    title = title_tag.get_text(strip=True) if title_tag else "Unknown"
 
                     spans = item.find_all('span')
-                    year = spans[0].get_text(strip=True) if len(spans)>0 else ""
-                    audio = spans[1].get_text(strip=True) if len(spans)>1 else ""
+                    year = spans[0].get_text(strip=True) if len(spans) > 0 else ""
+                    audio = spans[1].get_text(strip=True) if len(spans) > 1 else ""
 
                     full = f"{title} {year} {audio}".lower()
                     if not any(term in full for term in search_terms):
@@ -54,8 +54,8 @@ class starckfilmes(object):
 
                     magnets = self._get_magnets(link)
                     for magnet, qual in magnets:
-                        size = re.search(r'([\d\.]+ ?[GM]B)', qual)
-                        size_str = size.group(1) if size else "0 MB"
+                        size_match = re.search(r'([\d\.]+ ?[GM]B)', qual)
+                        size_str = size_match.group(1) if size_match else "0 MB"
 
                         data = {
                             'link': magnet,
@@ -69,21 +69,4 @@ class starckfilmes(object):
                         prettyPrinter(data)
                 except:
                     continue
-            time.sleep(1.5)
-
-    def _get_magnets(self, url):
-        try:
-            req = self.opener.open(url, timeout=20)
-            soup = BeautifulSoup(req.read().decode('utf-8', 'ignore'), 'html.parser')
-            magnets = []
-            for btn in soup.find_all('span', class_='btn-down'):
-                a = btn.find('a', href=re.compile('^magnet:'))
-                if a and a.get('href'):
-                    mag = a['href']
-                    txt = btn.find('span', class_='text')
-                    lines = [t.get_text(strip=True) for t in txt.find_all('span')] if txt else []
-                    qual = " | ".join(lines[-2:]) if len(lines)>=2 else "Magnet"
-                    magnets.append((mag, qual))
-            return magnets
-        except:
-            return []
+            time.sleep(1.5
